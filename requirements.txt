@@ -1,0 +1,3 @@
+janome
+requests
+beautifulsoup4
