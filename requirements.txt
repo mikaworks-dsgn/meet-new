@@ -1,3 +1,4 @@
 janome
 requests
 beautifulsoup4
+sentence-transformers
