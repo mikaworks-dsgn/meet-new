@@ -9,3 +9,4 @@ venv/
 data/*
 !data/books_axes.json
 !data/main_axes.json
+!data/candidate_axes.json
