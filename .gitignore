@@ -10,3 +10,5 @@ data/*
 !data/books_axes.json
 !data/main_axes.json
 !data/candidate_axes.json
+!data/axis_index.json
+!data/embeddings.npy
