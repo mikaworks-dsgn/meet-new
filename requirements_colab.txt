@@ -1,0 +1,11 @@
+# このファイルは、Google Colab上での、作業に使う、ライブラリの記録です。ローカルでは使いません。
+sentence-transformers==3.4.1
+transformers==4.57.6
+fugashi
+ipadic
+unidic
+unidic_lite
+
+# unidic は、パッケージをインストールしただけでは、辞書データが入りません。
+# 以下のコマンドで、別途、辞書をダウンロードする必要があります。
+# !python -m unidic download
