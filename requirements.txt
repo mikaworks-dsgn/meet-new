@@ -2,3 +2,4 @@ janome
 requests
 beautifulsoup4
 sentence-transformers
+streamlit==1.66.1
