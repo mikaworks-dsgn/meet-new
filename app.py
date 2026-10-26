@@ -3,6 +3,8 @@
 実行: streamlit run app.py
 """
 import json
+import random
+import zlib
 from collections import defaultdict
 from pathlib import Path
 
@@ -12,6 +14,20 @@ import streamlit as st
 DATA = Path(__file__).resolve().parent / "data"
 MAX_SHOW = 5  # 1つの軸について表示するおすすめの上限
 NOT_FOUND = "ちょうどいい、意外な、組み合わせは、見つかりませんでした"
+
+# おすすめの理由のテンプレート
+# {src}: 元のコンテンツ / {dst}: 相手 / {match}: 一致する軸(相手側)
+# {src_u}: 元のコンテンツの独自の軸 / {dst_u}: 相手の独自の軸
+REASONS = [
+    "{src}が好きなあなたに、{dst}はどうでしょう。「{match}」という点で、通じ合っています。"
+    "ただ、{dst}には「{dst_u}」という、{src}にはない魅力があります。",
+    "「{match}」というつながりから、{dst}をおすすめします。"
+    "{src}の「{src_u}」とは、また違った一面が、楽しめそうです。",
+    "{src}と{dst}は、「{match}」という共通点がありながら、"
+    "{dst}ならではの「{dst_u}」という違いもあります。",
+    "{dst}は、{src}と同じ「{match}」を持ちながら、"
+    "「{dst_u}」という、新しい扉を開いてくれるかもしれません。",
+]
 
 
 @st.cache_data
@@ -44,6 +60,21 @@ def unique_axis(src, dst):
             float(sim[i, j]), float(sim[i].max()))
 
 
+def partner_unique_axis(src, dst):
+    """dst の軸のうち、src の全軸と比べて最も離れている軸(src にはない魅力)を返す。"""
+    vecs, rows, names = load_vectors()
+    sim = vecs[rows[src]] @ vecs[rows[dst]].T  # 10 x 10
+    return names[rows[dst][int(sim.max(axis=0).argmin())]]
+
+
+def reason_text(src, src_axis, dst, match, src_u, dst_u):
+    """テンプレートを1つ選んで、おすすめの理由の文章を作る。
+    同じおすすめでは毎回同じ文章になるよう、組み合わせから乱数の種を決める。"""
+    seed = zlib.crc32(f"{src}|{src_axis}|{dst}".encode("utf-8"))
+    template = random.Random(seed).choice(REASONS)
+    return template.format(src=src, dst=dst, match=match, src_u=src_u, dst_u=dst_u)
+
+
 main_axes = load_json("main_axes.json")
 candidate_axes = load_json("candidate_axes.json")
 axis_recs = load_json("axis_recommendations.json")
@@ -56,12 +87,15 @@ def label(name):
     return f"{name}(メイン)" if name in main_axes else name
 
 
-def show_recs(content, recs, name_key):
+def show_recs(content, axis, recs, name_key):
     """おすすめを、類似度の高い順に MAX_SHOW 件まで表示する。"""
     for r in sorted(recs, key=lambda r: r["similarity"], reverse=True)[:MAX_SHOW]:
         u_src, u_dst, u_sim, u_max = unique_axis(content, r[name_key])
+        reason = reason_text(content, axis, r[name_key], r["axis"], u_src,
+                             partner_unique_axis(content, r[name_key]))
         with st.container(border=True):
             st.markdown(f"**{r[name_key]}**")
+            st.write(reason)
             st.caption(f"共通する軸:{r['axis']}({r['similarity']:.2f})"
                        f" / 独自の軸:{u_src} ⇔ {u_dst}({u_sim:.2f})")
             st.caption(f"「{u_src}」は、相手のどの軸とも類似度 {u_max:.2f} 以下")
@@ -113,12 +147,12 @@ else:
         with left:
             st.markdown("#### コンテンツ")
             if c_recs:
-                show_recs(content, c_recs, "content")
+                show_recs(content, axis, c_recs, "content")
             else:
                 st.caption("この軸では、見つかりませんでした。")
         with right:
             st.markdown("#### 名著")
             if b_recs:
-                show_recs(content, b_recs, "book")
+                show_recs(content, axis, b_recs, "book")
             else:
                 st.caption("この軸では、見つかりませんでした。")
