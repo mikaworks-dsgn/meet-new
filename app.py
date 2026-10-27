@@ -16,16 +16,17 @@ MAX_SHOW = 5  # 1つの軸について表示するおすすめの上限
 NOT_FOUND = "ちょうどいい、意外な、組み合わせは、見つかりませんでした"
 
 # おすすめの理由のテンプレート
-# {src}: 元のコンテンツ / {dst}: 相手 / {match}: 一致する軸(相手側)
+# {src}: 元のコンテンツ / {src_axis}: 元の軸(選んだ軸) / {dst}: 相手 / {match}: 相手の一致した軸
 # {src_u}: 元のコンテンツの独自の軸 / {dst_u}: 相手の独自の軸
 REASONS = [
-    "{src}が好きなあなたに、{dst}はどうでしょう。「{match}」という点で、通じ合っています。"
+    "{src}が好きなあなたに、{dst}はどうでしょう。{src}の「{src_axis}」と、"
+    "{dst}の「{match}」が、通じ合っています。"
     "ただ、{dst}には「{dst_u}」という、{src}にはない魅力があります。",
-    "「{match}」というつながりから、{dst}をおすすめします。"
+    "{src}の「{src_axis}」と、{dst}の「{match}」のつながりから、{dst}をおすすめします。"
     "{src}の「{src_u}」とは、また違った一面が、楽しめそうです。",
-    "{src}と{dst}は、「{match}」という共通点がありながら、"
+    "{src}の「{src_axis}」と、{dst}の「{match}」には、共通点がありながら、"
     "{dst}ならではの「{dst_u}」という違いもあります。",
-    "{dst}は、{src}と同じ「{match}」を持ちながら、"
+    "{dst}は、{src}の「{src_axis}」に通じる「{match}」を持ちながら、"
     "「{dst_u}」という、新しい扉を開いてくれるかもしれません。",
 ]
 
@@ -72,7 +73,8 @@ def reason_text(src, src_axis, dst, match, src_u, dst_u):
     同じおすすめでは毎回同じ文章になるよう、組み合わせから乱数の種を決める。"""
     seed = zlib.crc32(f"{src}|{src_axis}|{dst}".encode("utf-8"))
     template = random.Random(seed).choice(REASONS)
-    return template.format(src=src, dst=dst, match=match, src_u=src_u, dst_u=dst_u)
+    return template.format(src=src, src_axis=src_axis, dst=dst, match=match,
+                           src_u=src_u, dst_u=dst_u)
 
 
 main_axes = load_json("main_axes.json")
@@ -96,7 +98,7 @@ def show_recs(content, axis, recs, name_key):
         with st.container(border=True):
             st.markdown(f"**{r[name_key]}**")
             st.write(reason)
-            st.caption(f"共通する軸:{r['axis']}({r['similarity']:.2f})"
+            st.caption(f"共通する軸:{axis} ⇔ {r['axis']}({r['similarity']:.2f})"
                        f" / 独自の軸:{u_src} ⇔ {u_dst}({u_sim:.2f})")
             st.caption(f"「{u_src}」は、相手のどの軸とも類似度 {u_max:.2f} 以下")
             st.progress(min(max(r["similarity"], 0.0), 1.0),

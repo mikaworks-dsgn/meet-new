@@ -5,8 +5,11 @@
 - 独自の軸: 元のコンテンツの10軸のうち、比較相手のどの軸とも類似度が
   UNIQUE_TH 以下の軸(行の最大が UNIQUE_TH 以下の軸)が、1つ以上ある
 両方を満たす組み合わせだけを、件数の上限なしで保存する。
-ただし、元の軸と一致した相手の軸で、一方に否定の接頭語(非・不・無・反)が付き、
-もう一方が接頭語を除いた残りの言葉と同じ場合(例:「非日常」と「日常」)は除外する。
+ただし、元の軸と一致した相手の軸で、次の場合は除外する。
+- 一方に否定の接頭語(非・不・無・反)が付き、もう一方が接頭語を除いた残りの言葉と
+  同じ場合(例:「非日常」と「日常」)
+- 両方に否定の接頭語が付いていて、接頭語を除いた残りの言葉が違う場合
+  (例:「不条理」と「非日常の発見」)
 
 使い方: python scripts/rebuild_recs.py
 """
@@ -68,6 +71,17 @@ def is_negation_pair(a, b):
     return False
 
 
+# 単語の先頭にある接頭語だけを見る(「行方不明」の「不」のような、熟語の途中は除く)
+NEG_HEAD = re.compile(f"(?<!{KANJI})([{NEG_PREFIXES}])({KANJI}{{2,}})")
+
+
+def is_both_negated(a, b):
+    """両方に「接頭語+言葉」があり、接頭語を除いた残りの言葉が違うか。"""
+    rest_a = {m.group(2) for m in NEG_HEAD.finditer(a)}
+    rest_b = {m.group(2) for m in NEG_HEAD.finditer(b)}
+    return bool(rest_a and rest_b and not (rest_a & rest_b))
+
+
 excluded = defaultdict(int)  # ファイルごとの除外件数
 
 
@@ -83,8 +97,12 @@ def build(targets, key_name):
                 sims = S[i, cols]
                 j = int(sims.argmax())  # 相手の中で、いちばん近い軸を1つ
                 if sims[j] >= MATCH_TH:
-                    if is_negation_pair(idx[i][1], idx[cols[j]][1]):
-                        excluded[key_name] += 1
+                    a, b = idx[i][1], idx[cols[j]][1]
+                    if is_negation_pair(a, b):
+                        excluded[key_name, "片方だけ"] += 1
+                        continue
+                    if is_both_negated(a, b):
+                        excluded[key_name, "両方"] += 1
                         continue
                     recs.append({
                         key_name: t,
@@ -105,4 +123,6 @@ for fname, targets, key_name in [
         json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     n = sum(len(v) for v in out.values())
-    print(f"{fname}: keys={len(out)} recs={n} excluded={excluded[key_name]}")
+    print(f"{fname}: keys={len(out)} recs={n} "
+          f"excluded(片方だけ)={excluded[key_name, '片方だけ']} "
+          f"excluded(両方)={excluded[key_name, '両方']}")
