@@ -13,21 +13,21 @@ import streamlit as st
 
 DATA = Path(__file__).resolve().parent / "data"
 MAX_SHOW = 5  # 1つの軸について表示するおすすめの上限
-NOT_FOUND = "ちょうどいい、意外な、組み合わせは、見つかりませんでした"
+NOT_FOUND = "ちょうどいい意外な組み合わせは、見つかりませんでした"
 
 # おすすめの理由のテンプレート
 # {src}: 元のコンテンツ / {src_axis}: 元の軸(選んだ軸) / {dst}: 相手 / {match}: 相手の一致した軸
 # {src_u}: 元のコンテンツの独自の軸 / {dst_u}: 相手の独自の軸
 REASONS = [
-    "{src}が好きなあなたに、{dst}はどうでしょう。{src}の「{src_axis}」と、"
-    "{dst}の「{match}」が、通じ合っています。"
+    "{src}が好きなあなたに、{dst}はどうでしょう。{src}の「{src_axis}」と"
+    "{dst}の「{match}」が通じ合っています。"
     "ただ、{dst}には「{dst_u}」という、{src}にはない魅力があります。",
-    "{src}の「{src_axis}」と、{dst}の「{match}」のつながりから、{dst}をおすすめします。"
-    "{src}の「{src_u}」とは、また違った一面が、楽しめそうです。",
-    "{src}の「{src_axis}」と、{dst}の「{match}」には、共通点がありながら、"
+    "{src}の「{src_axis}」と{dst}の「{match}」のつながりから、{dst}をおすすめします。"
+    "{src}の「{src_u}」とは、また違った一面が楽しめそうです。",
+    "{src}の「{src_axis}」と{dst}の「{match}」には共通点がありながら、"
     "{dst}ならではの「{dst_u}」という違いもあります。",
     "{dst}は、{src}の「{src_axis}」に通じる「{match}」を持ちながら、"
-    "「{dst_u}」という、新しい扉を開いてくれるかもしれません。",
+    "「{dst_u}」という新しい扉を開いてくれるかもしれません。",
 ]
 
 
@@ -109,7 +109,7 @@ def show_recs(content, axis, recs, name_key):
 
 st.set_page_config(page_title="まだ知らない好きに、出会う", page_icon="🌱")
 st.title("まだ知らない好きに、出会う")
-st.write("好きなものを選んで、気になる軸を押すと、少し離れているけれど関係のある、"
+st.write("好きなものを選んで気になる軸を押すと、少し離れているけれど関係のある"
          "コンテンツや名著を提案します。")
 
 # 1. コンテンツを選ぶ
@@ -133,14 +133,14 @@ for n, axis in enumerate(contents[content]):
 # 3. 選んだ軸のおすすめを表示する
 axis = st.session_state.axis
 if axis is None:
-    st.info("軸のボタンを、1つ選んでください。")
+    st.info("軸のボタンを1つ選んでください。")
 else:
     key = f"{content}|{axis}"
     c_recs = axis_recs.get(key, [])
     b_recs = book_recs.get(key, [])
 
     st.divider()
-    st.subheader(f"「{axis}」から見つけた、おすすめ")
+    st.subheader(f"「{axis}」から見つけたおすすめ")
 
     if not c_recs and not b_recs:
         st.warning(NOT_FOUND)
@@ -151,10 +151,10 @@ else:
             if c_recs:
                 show_recs(content, axis, c_recs, "content")
             else:
-                st.caption("この軸では、見つかりませんでした。")
+                st.caption("この軸では見つかりませんでした。")
         with right:
             st.markdown("#### 名著")
             if b_recs:
                 show_recs(content, axis, b_recs, "book")
             else:
-                st.caption("この軸では、見つかりませんでした。")
+                st.caption("この軸では見つかりませんでした。")
